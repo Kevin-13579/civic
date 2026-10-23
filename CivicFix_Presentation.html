@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CivicFix - Project Presentation (DevOps Titans)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07090e;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(56, 189, 248, 0.2);
+      --primary: #38bdf8;
+      --secondary: #60a5fa;
+      --accent: #93c5fd;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --danger: #f87171;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* 16:9 Aspect Ratio Presentation Stage */
+    .deck-container {
+      position: relative;
+      width: 94vw;
+      max-width: 1400px;
+      aspect-ratio: 16 / 9;
+      background: radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+                  radial-gradient(circle at 90% 90%, rgba(96, 165, 250, 0.06) 0%, transparent 50%),
+                  #0a0d14;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 20px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(56, 189, 248, 0.1);
+      overflow: hidden;
+      display: flex;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 50px 70px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.97) translateY(10px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1) translateY(0);
+    }
+
+    /* Slide Header */
+    .slide-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .slide-title {
+      font-size: 38px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+
+    .slide-subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 25px;
+    }
+
+    /* Cards & Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      flex: 1;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      flex: 1;
+    }
+
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.3s ease;
+    }
+
+    .glass-card:hover {
+      border-color: rgba(56, 189, 248, 0.45);
+    }
+
+    .card-heading {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-heading.blue { color: var(--primary); }
+    .card-heading.red { color: var(--danger); }
+
+    .item-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .list-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .item-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .item-desc {
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--text-muted);
+    }
+
+    /* Slide 1 - Title Layout */
+    .title-slide-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .hero-title {
+      font-size: 68px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      background: linear-gradient(135deg, #ffffff 40%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .hero-tagline {
+      font-size: 20px;
+      color: var(--secondary);
+      font-weight: 500;
+      margin-bottom: 35px;
+    }
+
+    .team-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .team-chip {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--primary);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+
+    .member-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .member-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(56, 189, 248, 0.18);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .member-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .member-role {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+
+    .member-spec {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Slide 5 - Thank You */
+    .thankyou-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 18px;
+    }
+
+    .thankyou-title {
+      font-size: 64px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ffffff 40%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .thankyou-sub {
+      font-size: 20px;
+      color: var(--text-main);
+      max-width: 650px;
+    }
+
+    .live-chip-box {
+      display: flex;
+      gap: 14px;
+      margin-top: 10px;
+    }
+
+    .link-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+      padding: 10px 18px;
+      border-radius: 8px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Navigation Controls */
+    .controls {
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .btn {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--text-main);
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--primary);
+      color: #07090e;
+      border-color: var(--primary);
+    }
+
+    .slide-indicator {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 16:9 Presentation Stage -->
+  <div class="deck-container" id="deck">
+
+    <!-- SLIDE 1: Title & Team -->
+    <div class="slide active" id="slide-1">
+      <div class="slide-tag">🏙️ SMART MUNICIPAL AI INITIATIVE</div>
+      <div class="title-slide-content">
+        <h1 class="hero-title">CivicFix</h1>
+        <p class="hero-tagline">Scan. Report. Fixed. — AI-Verified Civic Redressal & GIS Dispatch Platform</p>
+        
+        <div class="team-badge-row">
+          <span class="team-chip">TEAM: DevOps Titans</span>
+          <span style="font-size: 12px; color: var(--text-muted);">Coimbatore Smart Infrastructure Project</span>
+        </div>
+
+        <div class="member-grid">
+          <div class="member-card">
+            <div class="member-name">Kevin</div>
+            <div class="member-role">Team Lead & DevOps</div>
+            <div class="member-spec">AWS Cloud Architecture, Docker & Security</div>
+          </div>
+          <div class="member-card">
+            <div class="member-name">Member 2</div>
+            <div class="member-role">Backend & AI Specialist</div>
+            <div class="member-spec">Spring Boot, REST APIs & Gemini Vision AI</div>
+          </div>
+          <div class="member-card">
+            <div class="member-name">Member 3</div>
+            <div class="member-role">Frontend Architect</div>
+            <div class="member-spec">React 19, GIS OpenStreetMap & UX</div>
+          </div>
+          <div class="member-card">
+            <div class="member-name">Member 4</div>
+            <div class="member-role">Database & QA</div>
+            <div class="member-spec">MySQL Architecture & Platform Testing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: Problem & Solution -->
+    <div class="slide" id="slide-2">
+      <div>
+        <div class="slide-tag">CHALLENGE & INNOVATION</div>
+        <h2 class="slide-title">Problem Statement & Solution Provided</h2>
+        <p class="slide-subtitle">Modernizing urban grievance management with AI automation and hyper-local GIS</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="glass-card">
+          <div class="card-heading red">⚠️ THE PROBLEM STATEMENT</div>
+          <div class="item-list">
+            <div class="list-item">
+              <span class="item-title">• Slow & Fragmented Redressal</span>
+              <span class="item-desc">Citizens face bureaucratic delays with opaque grievance systems offering zero visibility on report status.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Spam & Staff Overload</span>
+              <span class="item-desc">Municipal teams waste hundreds of hours manually screening irrelevant, duplicate, or fake photos.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Vague Locations</span>
+              <span class="item-desc">General city names (e.g. "Coimbatore") lack specific locality context, causing field squads to search aimlessly.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Citizen Privacy Violations</span>
+              <span class="item-desc">Unregulated public photos capture pedestrians' faces, posing compliance and legal risks.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-heading blue">✔ THE CIVICFIX SOLUTION</div>
+          <div class="item-list">
+            <div class="list-item">
+              <span class="item-title">• AI Vision Verification (Gemini 1.5)</span>
+              <span class="item-desc">Automated analysis verifies genuine road damage, potholes, and garbage while auto-suggesting descriptions.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Automated Privacy Shield</span>
+              <span class="item-desc">Detects human faces in photos and instantly rejects submissions to protect citizen privacy.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Hyper-Local GIS Tagging</span>
+              <span class="item-desc">Pinpoints exact localities (Eachanari, Gandhipuram, etc.) with OpenStreetMap embeds and Google turn-by-turn navigation.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Role-Based Authority Hub</span>
+              <span class="item-desc">Department-segregated review queue (Roads, Sanitation, Water) with live status tracking for citizens.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: AWS Services Used -->
+    <div class="slide" id="slide-3">
+      <div>
+        <div class="slide-tag">CLOUD INFRASTRUCTURE</div>
+        <h2 class="slide-title">AWS Cloud Architecture</h2>
+        <p class="slide-subtitle">Enterprise-grade deployment on Amazon Web Services ensuring reliability and speed</p>
+      </div>
+
+      <div class="grid-4">
+        <div class="glass-card">
+          <div class="card-heading blue">☁️ Amazon EC2</div>
+          <div class="item-list">
+            <div class="list-item">
+              <span class="item-title">Compute & Hosting</span>
+              <span class="item-desc">Hosts Dockerized multi-tier stack (Nginx, Spring Boot backend, MySQL container).</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">Ubuntu 24.04 LTS</span>
+              <span class="item-desc">Configured with auto-restart daemon policies for continuous availability.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-heading blue">🗄️ Amazon S3</div>
+          <div class="item-list">
+            <div class="list-item">
+              <span class="item-title">Cloud Object Storage</span>
+              <span class="item-desc">Scalable, durable bucket for high-res civic issue photos with public CDN URLs.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">Local Volume Fallback</span>
+              <span class="item-desc">Seamless fallback to local container storage if S3 connectivity is unavailable.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-heading blue">🔒 AWS VPC & Sec</div>
+          <div class="item-list">
+            <div class="list-item">
+              <span class="item-title">Network Isolation</span>
+              <span class="item-desc">Strict Security Group firewalls exposing only Port 80 HTTP for the web proxy.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">Internal Bridge</span>
+              <span class="item-desc">Internal container network prevents unauthorized access to MySQL Port 3306.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-heading blue">🔑 AWS IAM</div>
+          <div class="item-list">
+            <div class="list-item">
+              <span class="item-title">Least Privilege</span>
+              <span class="item-desc">Role-based credential-less access between EC2 and Amazon S3 buckets.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">Environment Vault</span>
+              <span class="item-desc">Encrypted environment variables for Gemini AI and database credentials.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: Benefits & Feasibilities -->
+    <div class="slide" id="slide-4">
+      <div>
+        <div class="slide-tag">IMPACT & VIABILITY</div>
+        <h2 class="slide-title">Benefits & Feasibility Analysis</h2>
+        <p class="slide-subtitle">Demonstrated municipal ROI, operational savings, and effortless scalability</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="glass-card">
+          <div class="card-heading blue">★ CORE BENEFITS</div>
+          <div class="item-list">
+            <div class="list-item">
+              <span class="item-title">• 80% Reduction in Triage Time</span>
+              <span class="item-desc">Automated AI classification routes issues directly to Roads, Sanitation, or Water officials without human sorting.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Elimination of False Reports</span>
+              <span class="item-desc">AI vision rejects selfies, cartoons, and unrelated photos at the submission gate.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Turn-by-Turn Field Dispatch</span>
+              <span class="item-desc">Exact coordinates and navigation guide repair squads right to potholes and garbage heaps.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Transparent Citizen Tracking</span>
+              <span class="item-desc">Real-time status updates (Not Reviewed → Reviewed → Resolved) build public trust.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-heading blue">✔ FEASIBILITY ANALYSIS</div>
+          <div class="item-list">
+            <div class="list-item">
+              <span class="item-title">• Technical Feasibility: HIGH</span>
+              <span class="item-desc">Built with proven enterprise frameworks (Spring Boot, React 19, MySQL, Docker) with zero vendor lock-in.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Financial Viability: LOW COST</span>
+              <span class="item-desc">Runs efficiently on low-cost AWS EC2 micro/small instances with pay-as-you-go S3 storage.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Operational Simplicity</span>
+              <span class="item-desc">Zero installation required for citizens or staff — operates across any mobile, tablet, or desktop browser.</span>
+            </div>
+            <div class="list-item">
+              <span class="item-title">• Scalability & Extensibility</span>
+              <span class="item-desc">Modular REST architecture ready for WhatsApp grievance bots, IoT smart bins, and state-wide integration.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: Thank You -->
+    <div class="slide" id="slide-5">
+      <div>
+        <div class="slide-tag">CIVICFIX PROJECT</div>
+      </div>
+
+      <div class="thankyou-box">
+        <h1 class="thankyou-title">Thank You!</h1>
+        <p class="thankyou-sub">Building cleaner, safer, and smarter neighborhoods together.</p>
+        
+        <div style="font-size: 17px; font-weight: 700; color: var(--secondary);">
+          Presented by DevOps Titans
+        </div>
+
+        <div class="live-chip-box">
+          <a href="http://3.88.100.25" target="_blank" class="link-pill">
+            🌐 Live Demo: http://3.88.100.25
+          </a>
+          <a href="https://github.com/Kevin-13579/civic" target="_blank" class="link-pill">
+            📁 GitHub: Kevin-13579/civic
+          </a>
+        </div>
+      </div>
+
+      <div style="text-align: center; color: var(--text-muted); font-size: 13px;">
+        Questions & Feedback Welcome
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Slide Navigation Controls -->
+  <div class="controls">
+    <button class="btn" id="prevBtn" onclick="prevSlide()">← Previous</button>
+    <span class="slide-indicator" id="indicator">Slide 1 of 5</span>
+    <button class="btn" id="nextBtn" onclick="nextSlide()">Next →</button>
+    <button class="btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+  </div>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 5;
+
+    function showSlide(index) {
+      if (index < 1) index = 1;
+      if (index > totalSlides) index = totalSlides;
+      currentSlide = index;
+
+      for (let i = 1; i <= totalSlides; i++) {
+        const slide = document.getElementById(`slide-${i}`);
+        if (i === currentSlide) {
+          slide.classList.add('active');
+        } else {
+          slide.classList.remove('active');
+        }
+      }
+
+      document.getElementById('indicator').textContent = `Slide ${currentSlide} of ${totalSlides}`;
+      document.getElementById('prevBtn').disabled = (currentSlide === 1);
+      document.getElementById('nextBtn').disabled = (currentSlide === totalSlides);
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) showSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) showSlide(currentSlide - 1);
+    }
+
+    function toggleFullscreen() {
+      const elem = document.getElementById('deck');
+      if (!document.fullscreenElement) {
+        elem.requestFullscreen().catch(err => alert(`Error: ${err.message}`));
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Keyboard Arrow Controls
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      }
+    });
+
+    showSlide(1);
+  </script>
+</body>
+</html>

@@ -21,7 +21,6 @@ USER civicuser
 COPY --from=builder /app/target/civic-0.0.1-SNAPSHOT.jar app.jar
 
 ENV PORT=8080 \
-    SPRING_PROFILES_ACTIVE=prod \
     FILE_UPLOAD_DIR=/app/uploads/
 
 EXPOSE 8080

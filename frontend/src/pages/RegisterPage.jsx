@@ -8,7 +8,7 @@ import './RegisterPage.css';
 const RegisterPage = ({ onNavigate }) => {
   const [formData, setFormData] = useState({
     name: '', email: '', password: '',
-    role: 'CITIZEN', department: 'General', location: ''
+    role: 'CITIZEN', department: 'General', location: 'Eachanari, Coimbatore'
   });
   const [loadingLoc, setLoadingLoc] = useState(false);
 
@@ -23,7 +23,7 @@ const RegisterPage = ({ onNavigate }) => {
       const city = await getCityFromBrowser();
       setFormData(prev => ({ ...prev, location: city }));
     } catch (err) {
-      alert("Could not auto-detect: " + err + "\nPlease pick your locality from the quick list.");
+      setFormData(prev => ({ ...prev, location: 'Eachanari, Coimbatore' }));
     } finally {
       setLoadingLoc(false);
     }
@@ -74,29 +74,31 @@ const RegisterPage = ({ onNavigate }) => {
           />
           
           <div className="register-loc-container">
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', textAlign: 'left' }}>
+              Your Ward / Locality:
+            </label>
             <div className="loc-row">
-              <input 
-                type="text" 
-                placeholder="Locality (e.g. Eachanari, Gandhipuram)" 
-                value={formData.location} 
+              <select
+                value={formData.location}
                 onChange={e => setFormData({...formData, location: e.target.value})}
-                list="reg-localities-list"
-                required 
-              />
+                style={{ flex: 1, padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              >
+                <option value="Eachanari, Coimbatore">📍 Eachanari, Coimbatore</option>
+                <option value="Gandhipuram, Coimbatore">📍 Gandhipuram, Coimbatore</option>
+                {COIMBATORE_LOCALITIES
+                  .filter(l => l !== 'Eachanari' && l !== 'Gandhipuram')
+                  .map(loc => (
+                    <option key={loc} value={`${loc}, Coimbatore`}>📍 {loc}, Coimbatore</option>
+                  ))}
+              </select>
               <button type="button" onClick={handleDetectCity} className="detect-btn">
                 {loadingLoc ? "..." : "📍 Detect"}
               </button>
             </div>
 
-            <datalist id="reg-localities-list">
-              {COIMBATORE_LOCALITIES.map(loc => (
-                <option key={loc} value={`${loc}, Coimbatore`} />
-              ))}
-            </datalist>
-
             <div className="quick-localities">
               <span>Quick pick: </span>
-              {["Eachanari", "Gandhipuram", "Peelamedu", "RS Puram", "Saravanampatti"].map(loc => (
+              {["Eachanari", "Gandhipuram", "Peelamedu", "RS Puram", "Ukkadam"].map(loc => (
                 <button 
                   type="button" 
                   key={loc}

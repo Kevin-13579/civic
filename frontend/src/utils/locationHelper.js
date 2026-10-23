@@ -60,81 +60,78 @@ export function findNearestCoimbatoreLocality(lat, lon) {
 }
 
 /**
- * IP-based Network Geolocation Fallback.
- * Used when browser blocks GPS due to HTTP insecure origin (e.g. AWS EC2 public IP link),
- * or when the user denies GPS permissions.
+ * Network / IP fallback when browser blocks GPS on HTTP EC2 links.
+ * CivicFix is built for Coimbatore. If regional ISP cellular gateways
+ * report Madurai, Chennai, or elsewhere, it rejects the wrong city and
+ * automatically anchors to Eachanari, Coimbatore.
  */
 async function getLocationFromIP() {
   try {
-    const res = await fetch('https://api.bigdatacloud.net/data/reverse-geocode-client', { timeout: 4000 });
+    const res = await fetch('https://api.bigdatacloud.net/data/reverse-geocode-client', { timeout: 3500 });
     if (res.ok) {
       const data = await res.json();
+      
+      // If lat/long is provided and genuinely in Coimbatore boundary:
       if (data.latitude && data.longitude) {
-        const nearest = findNearestCoimbatoreLocality(data.latitude, data.longitude);
-        if (nearest.locality && nearest.distanceKm <= 35.0) {
-          return `${nearest.locality}, Coimbatore`;
+        const isCoimbatoreCoords =
+          data.latitude >= 10.75 && data.latitude <= 11.25 &&
+          data.longitude >= 76.75 && data.longitude <= 77.25;
+
+        if (isCoimbatoreCoords) {
+          const nearest = findNearestCoimbatoreLocality(data.latitude, data.longitude);
+          if (nearest.locality && nearest.distanceKm <= 12.0) {
+            return `${nearest.locality}, Coimbatore`;
+          }
         }
       }
-      if (data.city || data.locality) {
-        const city = data.city || data.locality;
-        if (city.toLowerCase().includes('coimbatore')) {
-          return 'Eachanari, Coimbatore';
-        }
-        return `${city}`;
+
+      // Check if city is Coimbatore
+      const city = (data.city || data.locality || '').toLowerCase();
+      if (city.includes('coimbatore')) {
+        return 'Eachanari, Coimbatore';
+      }
+
+      // If ISP routed to Madurai, Chennai, Trichy, etc., ignore ISP gateway error
+      if (city.includes('madurai') || city.includes('chennai') || city.includes('tiruchirappalli') || city.includes('bangalore')) {
+        console.warn("ISP gateway assigned external city (" + data.city + "). Snapping to Coimbatore Eachanari.");
+        return 'Eachanari, Coimbatore';
       }
     }
   } catch (err) {
-    console.warn("IP Geolocation primary attempt failed, trying backup:", err);
+    console.warn("IP Geolocation primary attempt error:", err);
   }
 
-  try {
-    const res = await fetch('https://freeipapi.com/api/json', { timeout: 3000 });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.cityName) {
-        if (data.cityName.toLowerCase().includes('coimbatore')) {
-          return 'Gandhipuram, Coimbatore';
-        }
-        return `${data.cityName}`;
-      }
-    }
-  } catch (err) {
-    console.warn("Secondary IP Geolocation failed:", err);
-  }
-
-  // Graceful default for Coimbatore region
+  // Guaranteed safe fallback for Coimbatore civilians
   return 'Eachanari, Coimbatore';
 }
 
 /**
  * Enhanced browser location detector.
- * 1. Checks if browser is running in a Secure Context (HTTPS or localhost).
- * 2. If running over plain HTTP (e.g. http://<EC2-IP>), modern browsers block GPS with "Permission Denied".
- *    In this case, it seamlessly falls back to IP-based network location without showing an error!
- * 3. On HTTPS/localhost, queries GPS + Nominatim + Haversine hub proximity to return Eachanari or Gandhipuram.
+ * - On HTTPS/localhost with user GPS enabled: accurately calculates distance to Eachanari, Gandhipuram, etc.
+ * - On HTTP EC2 links where browsers block GPS: automatically provides Eachanari, Coimbatore without Madurai errors.
  */
 export const getCityFromBrowser = () => {
   return new Promise(async (resolve) => {
-    // Check if browser allows geolocation (requires HTTPS or localhost in modern browsers)
     const isSecure = typeof window !== 'undefined' && window.isSecureContext;
 
+    // In plain HTTP (like EC2 public IP), browser blocks GPS
     if (!isSecure || !navigator.geolocation) {
-      console.log("Insecure origin (HTTP EC2 IP) detected. Using IP-based network geolocation fallback.");
-      const ipLoc = await getLocationFromIP();
-      return resolve(ipLoc);
+      console.log("Insecure origin (HTTP EC2 IP). Using Coimbatore intelligent location resolver.");
+      const loc = await getLocationFromIP();
+      return resolve(loc);
     }
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
 
-        // 1. Proximity check against Coimbatore hubs
+        // Proximity calculation to Coimbatore hubs
         const nearest = findNearestCoimbatoreLocality(latitude, longitude);
         const isCoimbatoreArea =
           latitude >= 10.70 && latitude <= 11.35 &&
           longitude >= 76.70 && longitude <= 77.35;
 
-        // 2. Query OpenStreetMap Nominatim for exact address (suburb, neighbourhood)
+        // Query OpenStreetMap Nominatim for exact locality
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
@@ -151,32 +148,21 @@ export const getCityFromBrowser = () => {
             }
           }
         } catch (err) {
-          console.warn("Nominatim reverse geocode failed, falling back to proximity engine:", err);
+          console.warn("Nominatim error, using proximity engine:", err);
         }
 
-        // 3. Proximity match if within Coimbatore bounds
         if (isCoimbatoreArea && nearest.locality && nearest.distanceKm <= 8.0) {
           return resolve(`${nearest.locality}, Coimbatore`);
         }
 
-        // 4. Fallback to BigDataCloud
-        try {
-          const res = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-          );
-          const data = await res.json();
-          const city = data.city || data.locality || (nearest.locality ? `${nearest.locality}, Coimbatore` : "Eachanari, Coimbatore");
-          resolve(city);
-        } catch (err) {
-          resolve(nearest.locality ? `${nearest.locality}, Coimbatore` : "Eachanari, Coimbatore");
-        }
+        resolve(nearest.locality ? `${nearest.locality}, Coimbatore` : "Eachanari, Coimbatore");
       },
-      async (err) => {
-        console.warn("Browser GPS permission denied or blocked on HTTP. Falling back to IP-based network location.");
-        const fallbackLoc = await getLocationFromIP();
-        resolve(fallbackLoc);
+      async () => {
+        // GPS permission denied or blocked
+        const fallback = await getLocationFromIP();
+        resolve(fallback);
       },
-      { timeout: 6000, enableHighAccuracy: true }
+      { timeout: 5000, enableHighAccuracy: true }
     );
   });
 };

@@ -10,7 +10,7 @@ const ReportPage = ({ user, onNavigate, onSuccess }) => {
     email: user ? user.email : '', 
     description: '',
     department: '',
-    location: ''
+    location: user?.location || 'Eachanari, Coimbatore'
   });
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -33,7 +33,7 @@ const ReportPage = ({ user, onNavigate, onSuccess }) => {
       const city = await getCityFromBrowser();
       setFormData(prev => ({ ...prev, location: city }));
     } catch (err) {
-      alert("Location detection note: " + err + "\nPlease pick your locality from the quick list below.");
+      setFormData(prev => ({ ...prev, location: 'Eachanari, Coimbatore' }));
     } finally {
       setDetecting(false);
     }

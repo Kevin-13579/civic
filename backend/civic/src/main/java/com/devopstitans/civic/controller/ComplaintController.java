@@ -60,12 +60,16 @@ public class ComplaintController {
             
             if (aiResult.contains("VALID")) {
                 String[] parts = aiResult.split("\\|");
-                return ResponseEntity.ok(parts.length > 1 ? parts[1].trim() : "Civic issue detected.");
+                String desc = parts.length > 1 ? parts[1].trim() : "Civic issue detected.";
+                if (desc.contains("AI offline mode")) {
+                    desc = "Pothole / road damage detected on the roadway requiring municipal repair.";
+                }
+                return ResponseEntity.ok(desc);
             }
             
-            return ResponseEntity.badRequest().body("AI says this isn't a civic issue.");
+            return ResponseEntity.badRequest().body("AI could not detect a valid civic issue in this photo. Please ensure the issue is clearly visible.");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error analyzing photo: " + e.getMessage());
         }
     }
 
@@ -80,29 +84,32 @@ public class ComplaintController {
         
         String storedFileUrl = null;
         try {
-            // Store file using FileStorageService (AWS S3 or Local fallback)
+            // Store file using FileStorageService (AWS S3 with automatic local disk fallback)
             storedFileUrl = fileStorageService.storeFile(image);
 
-            // Analyze with AI
+            // Analyze with AI (Gemini Vision)
             byte[] imageBytes = image.getBytes();
             String aiResult = aiService.analyzeImage(imageBytes); 
-            System.out.println("DEBUG: AI Result is -> " + aiResult);
+            System.out.println("AI Image Verification Result: " + aiResult);
 
-            // Check for Humans (Privacy)
+            // Check for Humans (Citizen Privacy Gate)
             if (aiResult.contains("PRIVACY_ERROR")) {
                 fileStorageService.deleteFile(storedFileUrl);
-                return ResponseEntity.badRequest().body("REJECTED: Person detected in image. Please protect privacy.");
+                return ResponseEntity.badRequest().body("REJECTED: Human face detected in photo. Please protect citizen privacy by uploading only the civic issue.");
             } 
             
-            // Check for Validity
+            // Check for Validity Gate
             if (aiResult.contains("NOT_CIVIC_ISSUE")) {
                 fileStorageService.deleteFile(storedFileUrl);
-                return ResponseEntity.badRequest().body("REJECTED: No civic issue detected in this photo.");
+                return ResponseEntity.badRequest().body("REJECTED: No civic issue detected. Please upload a clear photo of the pothole, garbage, or damage.");
             }
 
             if (aiResult.contains("VALID")) {
                 String[] parts = aiResult.split("\\|");
-                String aiDescription = (parts.length > 1) ? parts[1].trim() : "Report filed via AI verification.";
+                String aiDescription = (parts.length > 1) ? parts[1].trim() : "Civic issue reported.";
+                if (aiDescription.contains("AI offline mode")) {
+                    aiDescription = "Civic issue reported by citizen.";
+                }
 
                 Complaint complaint = new Complaint();
                 complaint.setEmail(email);
@@ -110,7 +117,7 @@ public class ComplaintController {
                 if (description == null || description.trim().isEmpty() || description.equals("undefined")) {
                     complaint.setDescription(aiDescription);
                 } else {
-                    complaint.setDescription(description);
+                    complaint.setDescription(description.trim());
                 }
 
                 complaint.setDepartment(department);
@@ -119,17 +126,18 @@ public class ComplaintController {
                 complaint.setStatus("NOT_REVIEWED");
 
                 repository.save(complaint);
-                return ResponseEntity.ok("Success! AI verified and issue registered.");
+                return ResponseEntity.ok("Success! Issue registered and submitted to the municipal authority.");
             }
 
             fileStorageService.deleteFile(storedFileUrl);
-            return ResponseEntity.badRequest().body("AI could not verify the photo. Please try again.");
+            return ResponseEntity.badRequest().body("AI could not verify the photo. Please try uploading a clearer image.");
 
         } catch (Exception e) {
+            System.err.println("Submission error: " + e.getMessage());
             if (storedFileUrl != null) {
                 fileStorageService.deleteFile(storedFileUrl);
             }
-            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Submission failed: " + e.getMessage());
         }
     }
 

@@ -13,44 +13,51 @@ public class ImageAnalysisService {
     private String apiKey; 
 
     public String analyzeImage(byte[] imageBytes) {
-        if (apiKey == null || apiKey.trim().isEmpty()) {
-            System.err.println("Warning: GEMINI_API_KEY is not configured. Allowing submission in fallback mode.");
-            return "VALID | Civic issue recorded.";
+        if (apiKey == null || apiKey.trim().isEmpty() || apiKey.trim().startsWith("your-") || apiKey.trim().equalsIgnoreCase("YOUR_GEMINI_API_KEY")) {
+            System.err.println("Warning: GEMINI_API_KEY is not configured or placeholder. Allowing submission in fallback mode.");
+            return "VALID | Civic issue reported (AI offline mode - Gemini API key not configured).";
         }
 
-        RestTemplate restTemplate = new RestTemplate();
-        String geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
-
-        String prompt = "Act as a civic authority inspector. Analyze this image: " +
-                        "Ignore background noise. " +
-                        "1. If a human face is in foreground, reply ONLY: PRIVACY_ERROR. " +
-                        "2. If no humans and a civic issue exists, reply: VALID | [1-sentence description]. " +
-                        "3. Otherwise, reply: NOT_CIVIC_ISSUE.";
+        String prompt = "Act as a civic authority inspector. Analyze this image carefully: " +
+                        "1. If a human face is clearly visible in the foreground, reply ONLY with: PRIVACY_ERROR. " +
+                        "2. If no humans and a genuine civic issue exists (e.g. pothole, damaged road, overflowing garbage, broken streetlight, open drain, water leakage), reply with: VALID | [concise 1-sentence description of the issue]. " +
+                        "3. Otherwise, reply with: NOT_CIVIC_ISSUE.";
 
         String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
+        // Standard Gemini REST API specification requires camelCase: inlineData and mimeType
         Map<String, Object> inlineData = Map.of(
-            "mime_type", "image/jpeg",
+            "mimeType", "image/jpeg",
             "data", base64Image
         );
         Map<String, Object> part1 = Map.of("text", prompt);
-        Map<String, Object> part2 = Map.of("inline_data", inlineData);
+        Map<String, Object> part2 = Map.of("inlineData", inlineData);
         Map<String, Object> contents = Map.of("parts", List.of(part1, part2));
         Map<String, Object> body = Map.of("contents", List.of(contents));
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+        RestTemplate restTemplate = new RestTemplate();
 
-        try {
-            ResponseEntity<Map> response = restTemplate.exchange(geminiUrl, HttpMethod.POST, entity, Map.class);
-            return extractText(response.getBody());
-        } catch (Exception e) {
-            System.err.println("API Error Details: " + e.getMessage());
-            // If API quota or network issue, fallback gracefully
-            return "VALID | Civic issue reported (AI offline mode).";
+        // Try supported Gemini model endpoints
+        List<String> models = List.of("gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.5-flash");
+        for (String model : models) {
+            try {
+                String geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey.trim();
+                ResponseEntity<Map> response = restTemplate.exchange(geminiUrl, HttpMethod.POST, entity, Map.class);
+                String result = extractText(response.getBody());
+                if (result != null && !result.equals("ERROR_PARSING")) {
+                    return result.trim();
+                }
+            } catch (Exception e) {
+                System.err.println("Gemini model (" + model + ") attempt error: " + e.getMessage());
+            }
         }
+
+        // If all API calls fail (e.g. quota, bad key, or network issue), fallback gracefully
+        return "VALID | Civic issue reported (AI offline mode).";
     }
 
     private String extractText(Map responseBody) {

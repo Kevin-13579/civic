@@ -80,8 +80,8 @@ public class FileStorageService {
     }
 
     /**
-     * Stores a file in Amazon S3 if configured, otherwise stores in local disk directory.
-     * @return The accessible file URL (S3 public URL or local file path)
+     * Stores a file in Amazon S3 if configured and reachable, otherwise safely falls back to local disk storage.
+     * @return The accessible file URL (S3 public URL or /uploads/ filename)
      */
     public String storeFile(MultipartFile file) throws IOException {
         String cleanOriginalName = file.getOriginalFilename() != null 
@@ -90,27 +90,31 @@ public class FileStorageService {
         String uniqueFileName = System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 8) + "_" + cleanOriginalName;
 
         if (isS3Enabled && s3Client != null) {
-            String s3Key = "uploads/" + uniqueFileName;
-            PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(s3BucketName)
-                    .key(s3Key)
-                    .contentType(file.getContentType() != null ? file.getContentType() : "image/jpeg")
-                    .build();
+            try {
+                String s3Key = "uploads/" + uniqueFileName;
+                PutObjectRequest putRequest = PutObjectRequest.builder()
+                        .bucket(s3BucketName)
+                        .key(s3Key)
+                        .contentType(file.getContentType() != null ? file.getContentType() : "image/jpeg")
+                        .build();
 
-            s3Client.putObject(putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+                s3Client.putObject(putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            // Return public S3 URL
-            return String.format("https://%s.s3.%s.amazonaws.com/%s", s3BucketName, s3Region, s3Key);
-        } else {
-            // Local file storage
-            Path targetDir = Paths.get(localUploadDir).toAbsolutePath().normalize();
-            if (!Files.exists(targetDir)) {
-                Files.createDirectories(targetDir);
+                // Return public S3 URL
+                return String.format("https://%s.s3.%s.amazonaws.com/%s", s3BucketName, s3Region, s3Key);
+            } catch (Exception e) {
+                System.err.println("WARNING: S3 upload failed (" + e.getMessage() + "). Automatically falling back to local disk storage.");
             }
-            Path targetPath = targetDir.resolve(uniqueFileName);
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-            return targetPath.toString();
         }
+
+        // Local file storage (guaranteed fallback)
+        Path targetDir = Paths.get(localUploadDir).toAbsolutePath().normalize();
+        if (!Files.exists(targetDir)) {
+            Files.createDirectories(targetDir);
+        }
+        Path targetPath = targetDir.resolve(uniqueFileName);
+        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        return "/uploads/" + uniqueFileName;
     }
 
     /**
@@ -120,16 +124,22 @@ public class FileStorageService {
         if (fileUrlOrPath == null || fileUrlOrPath.trim().isEmpty()) return;
 
         try {
-            if (isS3Enabled && s3Client != null && fileUrlOrPath.contains("s3.") && fileUrlOrPath.contains(s3BucketName)) {
+            if (isS3Enabled && s3Client != null && fileUrlOrPath.contains("s3.") && s3BucketName != null && !s3BucketName.isEmpty() && fileUrlOrPath.contains(s3BucketName)) {
                 String prefix = String.format("https://%s.s3.%s.amazonaws.com/", s3BucketName, s3Region);
                 String key = fileUrlOrPath.replace(prefix, "");
                 s3Client.deleteObject(DeleteObjectRequest.builder().bucket(s3BucketName).key(key).build());
             } else {
-                Path path = Paths.get(fileUrlOrPath);
+                String filename = fileUrlOrPath.contains("/") 
+                        ? fileUrlOrPath.substring(fileUrlOrPath.lastIndexOf('/') + 1) 
+                        : fileUrlOrPath;
+                if (filename.contains("\\")) {
+                    filename = filename.substring(filename.lastIndexOf('\\') + 1);
+                }
+                Path path = Paths.get(localUploadDir).toAbsolutePath().normalize().resolve(filename);
                 Files.deleteIfExists(path);
             }
         } catch (Exception e) {
-            System.err.println("Failed to clean up rejected file: " + e.getMessage());
+            System.err.println("Failed to clean up file: " + e.getMessage());
         }
     }
 

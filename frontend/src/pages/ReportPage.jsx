@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { DEPARTMENTS } from '../constants';
+import { DEPARTMENTS, COIMBATORE_LOCALITIES } from '../constants';
 import { getCityFromBrowser } from '../utils/locationHelper';
+import { API_BASE_URL } from '../config/api';
 import './ReportPage.css';
 
 const ReportPage = ({ user, onNavigate, onSuccess }) => {
@@ -14,10 +15,16 @@ const ReportPage = ({ user, onNavigate, onSuccess }) => {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [detecting, setDetecting] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false); // New state for AI button
+  const [aiLoading, setAiLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSelectLocality = (localityName) => {
+    if (!localityName) return;
+    const formatted = localityName.includes('Coimbatore') ? localityName : `${localityName}, Coimbatore`;
+    setFormData(prev => ({ ...prev, location: formatted }));
   };
 
   const handleDetect = async () => {
@@ -26,25 +33,25 @@ const ReportPage = ({ user, onNavigate, onSuccess }) => {
       const city = await getCityFromBrowser();
       setFormData(prev => ({ ...prev, location: city }));
     } catch (err) {
-      alert("Could not detect location: " + err);
+      alert("Location detection note: " + err + "\nPlease pick your locality from the quick list below.");
     } finally {
       setDetecting(false);
     }
   };
 
-  // NEW: Function to call Gemini for a suggested description
+  // Call Gemini for AI-suggested description
   const handleAISuggest = async () => {
-    if (!image) return alert("Please upload a photo first!");
+    if (!image) return alert("Please upload a photo of the civic issue first!");
     
     setAiLoading(true);
     const data = new FormData();
     data.append('image', image);
 
     try {
-      const res = await axios.post('http://localhost:8080/api/complaints/describe', data);
+      const res = await axios.post(`${API_BASE_URL}/api/complaints/describe`, data);
       setFormData(prev => ({ ...prev, description: res.data }));
     } catch (err) {
-      alert(err.response?.data || "AI could not describe this image.");
+      alert(err.response?.data || "AI could not describe this image. Please enter a manual description.");
     } finally {
       setAiLoading(false);
     }
@@ -52,7 +59,12 @@ const ReportPage = ({ user, onNavigate, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.location) return alert("Please detect your location first!");
+    if (!formData.location || !formData.location.trim()) {
+      return alert("Please select or detect your specific location (e.g. Eachanari, Gandhipuram)!");
+    }
+    if (!image) {
+      return alert("Please upload an image of the pothole, garbage, or civic issue!");
+    }
     
     setLoading(true);
     const data = new FormData();
@@ -63,13 +75,12 @@ const ReportPage = ({ user, onNavigate, onSuccess }) => {
     data.append('image', image);
 
     try {
-      const res = await axios.post('http://localhost:8080/api/complaints/submit', data);
-      alert(res.data); // This will show "AI verified..." or specific rejection messages
+      const res = await axios.post(`${API_BASE_URL}/api/complaints/submit`, data);
+      alert(res.data);
       if (onSuccess) onSuccess(); 
       else if (onNavigate) onNavigate('landing');
     } catch (err) {
-      // This catches the AI "Privacy" or "Invalid Issue" rejections
-      alert(err.response?.data || "Submission failed");
+      alert(err.response?.data || "Submission failed. Please check the uploaded photo.");
     } finally {
       setLoading(false);
     }
@@ -78,35 +89,76 @@ const ReportPage = ({ user, onNavigate, onSuccess }) => {
   return (
     <div className="report-container">
       <div className="report-card">
-        <h3>Report a Problem</h3>
+        <h3>Report a Civic Problem</h3>
+        <p className="report-subtitle">Potholes, garbage dumping, broken streetlights & road hazards</p>
+
         <form onSubmit={handleSubmit}>
           <input 
-            type="email" name="email" placeholder="Your Email" 
+            type="email" name="email" placeholder="Your Email Address" 
             value={formData.email} onChange={handleChange} 
             required readOnly={!!user} 
           />
 
           <select name="department" value={formData.department} onChange={handleChange} required>
-            <option value="">Select Department</option>
+            <option value="">Select Civic Department</option>
             {DEPARTMENTS.map(dept => (
               <option key={dept} value={dept}>{dept}</option>
             ))}
           </select>
 
-          <div className="location-input-group">
-            <input 
-              type="text" name="location" placeholder="City (Auto-detected)" 
-              value={formData.location} readOnly required 
-            />
-            <button type="button" onClick={handleDetect} className="detect-btn">
-              {detecting ? "..." : "📍 Detect"}
-            </button>
+          {/* Enhanced Location Selector with Eachanari & Gandhipuram specificity */}
+          <div className="location-section">
+            <label className="section-label">Incident Location (Specific Locality):</label>
+            
+            <div className="location-input-group">
+              <input 
+                type="text" 
+                name="location" 
+                placeholder="e.g. Eachanari, Gandhipuram, Peelamedu..." 
+                value={formData.location} 
+                onChange={handleChange}
+                list="coimbatore-localities-list"
+                required 
+              />
+              <button 
+                type="button" 
+                onClick={handleDetect} 
+                className="detect-btn"
+                title="Detect GPS locality"
+                disabled={detecting}
+              >
+                {detecting ? "Locating..." : "📍 Detect GPS"}
+              </button>
+            </div>
+
+            <datalist id="coimbatore-localities-list">
+              {COIMBATORE_LOCALITIES.map(loc => (
+                <option key={loc} value={`${loc}, Coimbatore`} />
+              ))}
+            </datalist>
+
+            {/* Quick-Pick Location Chips */}
+            <div className="locality-chips-container">
+              <span className="chips-label">Quick select:</span>
+              <div className="chips-list">
+                {["Eachanari", "Gandhipuram", "Peelamedu", "RS Puram", "Ukkadam", "Saravanampatti", "Singanallur", "Kuniyamuthur"].map(loc => (
+                  <button
+                    key={loc}
+                    type="button"
+                    className={`loc-chip ${formData.location.includes(loc) ? 'active' : ''}`}
+                    onClick={() => handleSelectLocality(loc)}
+                  >
+                    📍 {loc}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="description-group">
             <textarea 
               name="description" 
-              placeholder="What's the issue? (e.g. Pothole near the market)" 
+              placeholder="Describe the issue (e.g. Large pothole near temple causing traffic hazard, or garbage overflowing on pavement)" 
               value={formData.description}
               onChange={handleChange} 
               required 
@@ -117,17 +169,23 @@ const ReportPage = ({ user, onNavigate, onSuccess }) => {
               className="ai-suggest-btn"
               disabled={aiLoading || !image}
             >
-              {aiLoading ? "AI is thinking..." : "✨ AI Suggest Description"}
+              {aiLoading ? "Analyzing with AI..." : "✨ AI Suggest Description"}
             </button>
           </div>
 
           <div className="file-upload">
-            <label>Upload Photo of Issue:</label>
-            <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files[0])} required />
+            <label>Upload Photo of Issue (Pothole, Waste, Damage):</label>
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => setImage(e.target.files[0])} 
+              required 
+            />
+            <span className="upload-hint">AI verifies genuine civic issues and rejects photos containing people's faces for privacy.</span>
           </div>
 
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? "AI is Verifying Image..." : "Submit Report"}
+            {loading ? "AI is Verifying & Uploading..." : "Submit Complaint to Authority"}
           </button>
         </form>
       </div>

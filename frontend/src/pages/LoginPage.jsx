@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import './RegisterPage.css'; // Reusing the same styling for consistency
 
 const LoginPage = ({ onNavigate, onLoginSuccess }) => {
@@ -8,7 +9,7 @@ const LoginPage = ({ onNavigate, onLoginSuccess }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:8080/api/auth/login', formData);
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, formData);
       
       // 1. Save user to local storage so they stay logged in
       localStorage.setItem('user', JSON.stringify(res.data));

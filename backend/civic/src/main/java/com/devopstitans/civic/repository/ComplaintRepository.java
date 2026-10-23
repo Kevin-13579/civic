@@ -6,7 +6,12 @@ import java.util.List;
 
 public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
     
-    // This naming convention tells Spring: 
-    // "Find by Dept (ignore capital letters) AND Location (if it contains the city name)"
+    // Filter by department and locality (e.g. "Roads" and "Eachanari")
     List<Complaint> findByDepartmentIgnoreCaseAndLocationContainingIgnoreCase(String department, String location);
+
+    // Filter by department only (e.g. all "Roads" complaints across all localities)
+    List<Complaint> findByDepartmentIgnoreCase(String department);
+
+    // Filter by location only (e.g. all complaints in "Eachanari" or "Gandhipuram")
+    List<Complaint> findByLocationContainingIgnoreCase(String location);
 }

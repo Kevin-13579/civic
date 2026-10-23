@@ -11,7 +11,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173") // Connects to your Vite React App
+@CrossOrigin(origins = "*")
 public class AuthController {
 
     @Autowired

@@ -197,6 +197,51 @@ select:focus {
 }
 
 .reg-btn:hover,
+.register-loc-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quick-localities {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.quick-loc-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-loc-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.quick-loc-btn.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.auth-subtitle {
+  color: #64748b;
+  font-size: 13px;
+  margin-top: 4px;
+  margin-bottom: 20px;
+}
+
 .main-btn:hover {
   background: #1e40af;
   transform: translateY(-2px);

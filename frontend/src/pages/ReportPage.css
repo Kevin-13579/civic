@@ -57,36 +57,107 @@
   color: #0f172a;
   text-transform: uppercase;
 }
+.report-subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin-top: -15px;
+  margin-bottom: 25px;
+}
+
+.location-section {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.section-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
 
 .location-input-group {
   display: flex;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .location-input-group input {
   flex: 1;
-  background: #eef2f7; /* Institutional read-only tone */
-  border: 1px solid #d6dde6;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   color: #1e293b;
   font-weight: 500;
+  padding: 10px 14px;
+  border-radius: 4px;
 }
 
+.location-input-group input:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.locality-chips-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.chips-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.chips-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.loc-chip {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.loc-chip:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.loc-chip.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
 
 /* ============================= */
 /* DETECT BUTTON (Official Secondary Action) */
 /* ============================= */
 
 .detect-btn {
-  background: #0f172a; /* Deep Government Navy */
+  background: #0f172a;
   color: #ffffff;
   border: 1px solid #0f172a;
   padding: 0 18px;
-  border-radius: 4px; /* Reduced rounding = more official */
+  border-radius: 4px;
   cursor: pointer;
   font-weight: 600;
   letter-spacing: 0.3px;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .detect-btn:hover {
@@ -95,6 +166,12 @@
   transform: translateY(-1px);
 }
 
+.upload-hint {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+}
 
 /* ============================= */
 /* FILE UPLOAD SECTION */

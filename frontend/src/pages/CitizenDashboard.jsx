@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ReportPage from './ReportPage';
+import { API_BASE_URL } from '../config/api';
+import { getImageUrl } from '../utils/imageHelper';
 import './CitizenDashboard.css';
 
 const CitizenDashboard = ({ user, onLogout }) => {
@@ -13,12 +15,12 @@ const CitizenDashboard = ({ user, onLogout }) => {
 
   const fetchUserReports = async () => {
     try {
-      const res = await axios.get('http://localhost:8080/api/complaints/all');
+      const res = await axios.get(`${API_BASE_URL}/api/complaints/all`);
       // Practical Filter: Only show issues reported by THIS user
       const myData = res.data.filter(item => item.email === user.email);
       setReports(myData);
     } catch (err) {
-      console.error("Error fetching history");
+      console.error("Error fetching history", err);
     }
   };
 
@@ -32,7 +34,7 @@ const CitizenDashboard = ({ user, onLogout }) => {
         <div className="profile-group">
           <div className="user-info">
             <p className="user-name">{user?.name || 'Citizen'}</p>
-            <p className="user-loc">{user?.location || 'Coimbatore'}</p>
+            <p className="user-loc">📍 {user?.location || 'Coimbatore'}</p>
           </div>
           <div className="profile-icon">{user?.name?.charAt(0) || 'U'}</div>
           <button className="logout-btn" onClick={onLogout}>Logout</button>
@@ -42,12 +44,12 @@ const CitizenDashboard = ({ user, onLogout }) => {
       {/* 2. Main Content */}
       <main className="citizen-main">
         <div className="dashboard-top">
-          <h3>Your Impact</h3>
+          <h3>Your Civic Impact</h3>
           <button 
             className="action-btn" 
             onClick={() => setShowReportForm(!showReportForm)}
           >
-            {showReportForm ? '← View History' : '+ Report New Issue'}
+            {showReportForm ? '← View Report History' : '+ Report New Issue (Pothole/Garbage)'}
           </button>
         </div>
 
@@ -61,21 +63,25 @@ const CitizenDashboard = ({ user, onLogout }) => {
         ) : (
           <div className="history-list">
             <div className="stats-row">
-              <div className="stat-box">Total: {reports.length}</div>
+              <div className="stat-box">Total Reported: {reports.length}</div>
               <div className="stat-box green">Resolved: {reports.filter(r => r.status === 'RESOLVED').length}</div>
             </div>
 
             {reports.length === 0 ? (
               <div className="empty-state">
-                <p>No reports found. Help your city by reporting your first issue!</p>
+                <p>No civic reports found yet. Help keep Eachanari, Gandhipuram & Coimbatore clean and safe by reporting your first issue!</p>
               </div>
             ) : (
               reports.map(report => (
                 <div key={report.id} className="history-card">
                   <img 
-                    src={`http://localhost:8080/uploads/${report.imageUrl?.split('\\').pop()}`} 
+                    src={getImageUrl(report.imageUrl)} 
                     alt="Issue" 
-                    className="report-thumb" 
+                    className="report-thumb"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=500&auto=format&fit=crop&q=60';
+                    }}
                   />
                   <div className="report-details">
                     <div className="report-header">

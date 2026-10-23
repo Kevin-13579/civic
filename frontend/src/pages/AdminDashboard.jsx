@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MapPin, AlertCircle, Info, X, LogOut, Loader2, Filter } from 'lucide-react';
+import { MapPin, AlertCircle, Info, X, LogOut, Loader2, Filter, LayoutGrid, Map as MapIcon } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
 import { getImageUrl } from '../utils/imageHelper';
 import { COIMBATORE_LOCALITIES } from '../constants';
+import LocationMap from '../components/LocationMap';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ user, onLogout }) => {
@@ -12,6 +13,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [selectedLocality, setSelectedLocality] = useState(user?.location || 'All');
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'map'
 
   useEffect(() => {
     if (user) fetchData();
@@ -49,6 +51,8 @@ const AdminDashboard = ({ user, onLogout }) => {
     }
   };
 
+  const filteredComplaints = complaints.filter(c => (c.status || 'NOT_REVIEWED') === filter);
+
   return (
     <div className="adminRoot">
       <nav className="topNav">
@@ -84,62 +88,130 @@ const AdminDashboard = ({ user, onLogout }) => {
         <div className="adminFilterRow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px 0', flexWrap: 'wrap', gap: '15px' }}>
           <div className="statsBar" style={{ margin: 0 }}>
             <div className="statCard">Total {user?.department} Issues: {complaints.length}</div>
-            <div className="statCard blue">Viewing: {filter.replace('_', ' ')} ({complaints.filter(c => (c.status || 'NOT_REVIEWED') === filter).length})</div>
+            <div className="statCard blue">Viewing: {filter.replace('_', ' ')} ({filteredComplaints.length})</div>
           </div>
 
-          <div className="localityFilter" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Filter size={16} color="#64748b" />
-            <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>Filter Locality:</label>
-            <select 
-              value={selectedLocality} 
-              onChange={(e) => setSelectedLocality(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 500 }}
-            >
-              <option value="All">All Localities</option>
-              {COIMBATORE_LOCALITIES.map(loc => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+            {/* View Mode Toggle */}
+            <div className="viewToggleGroup">
+              <button 
+                type="button" 
+                className={`viewToggleBtn ${viewMode === 'cards' ? 'active' : ''}`}
+                onClick={() => setViewMode('cards')}
+              >
+                <LayoutGrid size={15} />
+                <span>Cards</span>
+              </button>
+              <button 
+                type="button" 
+                className={`viewToggleBtn ${viewMode === 'map' ? 'active' : ''}`}
+                onClick={() => setViewMode('map')}
+              >
+                <MapIcon size={15} />
+                <span>Map Overview</span>
+              </button>
+            </div>
+
+            {/* Locality Selector */}
+            <div className="localityFilter" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Filter size={16} color="#64748b" />
+              <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>Filter Locality:</label>
+              <select 
+                value={selectedLocality} 
+                onChange={(e) => setSelectedLocality(e.target.value)}
+                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 500 }}
+              >
+                <option value="All">All Localities</option>
+                {COIMBATORE_LOCALITIES.map(loc => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
         {loading ? (
           <div className="loaderContainer"><Loader2 className="spinner" /> Loading reports...</div>
-        ) : (
-          <div className="cardGrid">
-            {complaints
-              .filter(c => (c.status || 'NOT_REVIEWED') === filter)
-              .map(item => (
-                <div key={item.id} className="complaintCard">
-                  <div className="cardLeft">
-                    {item.imageUrl && (
-                      <img 
-                        src={getImageUrl(item.imageUrl)} 
-                        alt="Issue" className="rectImg" 
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=500&auto=format&fit=crop&q=60';
-                        }}
-                      />
-                    )}
-                    <div className="cardIcons">
-                      <span className="priorityTag"><AlertCircle size={12}/> AI Verified</span>
-                      <span className="locTag"><MapPin size={12}/> {item.location}</span>
+        ) : viewMode === 'map' ? (
+          /* ========================================================
+             MAP OVERVIEW VIEW: Interactive map of selected locality
+             ======================================================== */
+          <div className="adminMapOverview">
+            <LocationMap 
+              location={selectedLocality !== 'All' ? selectedLocality : (filteredComplaints[0]?.location || 'Coimbatore')} 
+              height={500}
+              title={`Live Locality Map: ${selectedLocality !== 'All' ? selectedLocality : 'Coimbatore Region'}`}
+            />
+            
+            <div className="mapOverviewSidebar">
+              <h4 style={{ margin: '0 0 10px 0', fontSize: '15px', color: '#0f172a' }}>
+                Reported Issues in {selectedLocality} ({filteredComplaints.length})
+              </h4>
+              {filteredComplaints.length === 0 ? (
+                <p style={{ color: '#64748b', fontSize: '13px' }}>No {filter.replace('_', ' ')} issues in this locality.</p>
+              ) : (
+                filteredComplaints.map(item => (
+                  <div key={item.id} className="mapSidebarItem" onClick={() => setSelectedIssue(item)}>
+                    <img 
+                      src={getImageUrl(item.imageUrl)} 
+                      alt="Issue" 
+                      className="mapSidebarImg"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=500&auto=format&fit=crop&q=60';
+                      }}
+                    />
+                    <div className="mapSidebarContent">
+                      <p className="mapSidebarDesc">{item.description}</p>
+                      <div className="mapSidebarMeta">
+                        <span className="mapSidebarLoc"><MapPin size={12} /> {item.location}</span>
+                        <span style={{ color: '#1d4ed8', fontWeight: 600 }}>Inspect →</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="cardRight">
-                    <p className="descriptionText">{item.description}</p>
-                    <button className="viewBtn" onClick={() => setSelectedIssue(item)}>
-                      <Info size={16}/> Details
-                    </button>
+                ))
+              )}
+            </div>
+          </div>
+        ) : (
+          /* ========================================================
+             CARDS VIEW: Grid of complaint cards
+             ======================================================== */
+          <div className="cardGrid">
+            {filteredComplaints.map(item => (
+              <div key={item.id} className="complaintCard">
+                <div className="cardLeft">
+                  {item.imageUrl && (
+                    <img 
+                      src={getImageUrl(item.imageUrl)} 
+                      alt="Issue" className="rectImg" 
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=500&auto=format&fit=crop&q=60';
+                      }}
+                    />
+                  )}
+                  <div className="cardIcons">
+                    <span className="priorityTag"><AlertCircle size={12}/> AI Verified</span>
+                    <span className="locTag"><MapPin size={12}/> {item.location}</span>
                   </div>
                 </div>
-              ))}
+                <div className="cardRight">
+                  <p className="descriptionText">{item.description}</p>
+                  <button className="viewBtn" onClick={() => setSelectedIssue(item)}>
+                    <Info size={16}/> Details & Map
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </main>
 
+      {/* ========================================================
+         DETAIL MODAL WITH INTERACTIVE LOCATION MAP
+         ======================================================== */}
       {selectedIssue && (
         <div className="modalOverlay" onClick={() => setSelectedIssue(null)}>
           <div className="detailsModal" onClick={e => e.stopPropagation()}>
@@ -177,17 +249,14 @@ const AdminDashboard = ({ user, onLogout }) => {
                    </button>
                 </div>
               </div>
+
+              {/* Robust Interactive Location Map */}
               <div className="modalMap">
-                <h3>Location Map</h3>
-                <iframe
-                  title="map"
-                  width="100%"
-                  height="300"
-                  style={{ border: 0, borderRadius: '12px' }}
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(selectedIssue.location)}&z=15&output=embed`}
-                  allowFullScreen
-                ></iframe>
-                <p className="coordText">Location: {selectedIssue.location}</p>
+                <LocationMap 
+                  location={selectedIssue.location} 
+                  height={320} 
+                  title={`Incident Map: ${selectedIssue.location}`} 
+                />
               </div>
             </div>
           </div>

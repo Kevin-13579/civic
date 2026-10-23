@@ -10,7 +10,7 @@ import java.util.*;
 public class GeminiService {
 
     // 1. Injects the key from application.properties
-    @Value("${GEMINI_API_KEY}")
+    @Value("${gemini.api-key:}")
     private String apiKey;
 
     public String analyzeImage(byte[] imageBytes) {
